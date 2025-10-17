@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Are you still sad for me?</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial; }
+    html,body { height:100%; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #ffeef7 0%, #ffd3e8 40%, #ffc0d6 100%);
+      padding: 28px;
+    }
+
+    .card {
+      width: 360px;
+      max-width: calc(100% - 40px);
+      background: linear-gradient(180deg, #fff2f6 0%, #ffe9f2 100%);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(18,12,25,0.12);
+      padding: 22px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .title { font-size: 20px; font-weight: 800; color: #5a1633; }
+    .subtitle { font-size: 13px; color: #7a3a57; margin-top:6px; }
+
+    .btn-row { display:flex; gap:12px; justify-content:center; margin-top:16px; }
+    .btn {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: .2px;
+      transition: transform .12s ease, box-shadow .12s ease, left .12s ease;
+      user-select: none;
+    }
+    .btn:active { transform: translateY(2px); }
+
+    .btn-yes {
+      background: linear-gradient(90deg,#ff9bb3,#ffb7d0);
+      color: #4a0b20;
+      box-shadow: 0 8px 20px rgba(255,107,167,0.18);
+    }
+    .btn-no {
+      background: linear-gradient(90deg,#ffd1e6,#ffc1df);
+      color: #540b2a;
+      box-shadow: 0 8px 20px rgba(183,93,137,0.12);
+      position: relative;
+    }
+
+    .hint { font-size: 12px; color: #7b3a54; margin-top:12px; }
+
+    /* overlay and modal */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20,10,20,0.48);
+      z-index: 200;
+      padding: 20px;
+    }
+    .overlay.show { display:flex; }
+
+    .modal {
+      width: 440px;
+      max-width: calc(100% - 40px);
+      background: linear-gradient(180deg,#fff6fb,#fff0f7);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(18,12,25,0.34);
+      transform: translateY(18px) scale(.98);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(.2,.9,.28,1), opacity .28s;
+    }
+    .overlay.show .modal { transform: translateY(0) scale(1); opacity: 1; }
+
+    .emoji-row { display:flex; gap:12px; justify-content:center; margin-bottom:12px; font-size:26px; }
+    .emoji { display:inline-block; transform-origin:50% 50%; animation: float 3s infinite ease-in-out; }
+    .emoji:nth-child(2){ animation-delay:.08s; } .emoji:nth-child(3){ animation-delay:.16s; }
+
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(6deg); }
+      100% { transform: translateY(0) rotate(0deg); }
+    }
+
+    .typed { font-weight: 700; color: #5b1230; min-height:40px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .cursor { width: 2px; height: 20px; background: #4b1226; margin-left:8px; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0 } }
+
+    .close {
+      margin-top: 12px;
+      display:inline-block;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(90deg,#ff79a6,#ff9bb3);
+      color: white;
+      font-weight: 800;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(255,102,153,.18);
+    }
+
+    .confetti { pointer-events:none; position: fixed; inset:0; overflow:hidden; z-index:150; }
+
+    .small { font-size:13px; color:#7a3a57; margin-top:8px; }
+    @media (max-width:460px){
+      .card { width: 92%; padding:18px; }
+      .modal { width: 92%; padding:18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card" role="region" aria-label="Ask if still sad">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#ffdff0,#ffe7f4);display:grid;place-items:center;font-size:30px;">💘</div>
+      <div style="text-align:center;">
+        <div class="title">Hey Jani…</div>
+        <div class="subtitle">Are you still sad for me?</div>
+      </div>
+    </div>
+
+    <div class="btn-row" role="group" aria-label="Yes or No buttons">
+      <button class="btn btn-yes" id="btnYes" aria-pressed="false">Yes — I'm sad</button>
+      <button class="btn btn-no" id="btnNo" aria-pressed="false">No — I'm okay 😊</button>
+    </div>
+
+    <div class="hint">Tap gently — it's a little surprise waiting 💕</div>
+  </div>
+
+  <!-- apology modal -->
+  <div class="overlay" id="overlayApology" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="apologyTitle">
+      <div class="emoji-row" aria-hidden="true">
+        <div class="emoji">🥺</div>
+        <div class="emoji">🙏</div>
+        <div class="emoji">💛</div>
+      </div>
+
+      <h2 id="apologyTitle" style="color:#56122b;margin-bottom:8px;">Oh no… I'm so sorry!</h2>
+
+      <div class="typed" id="typedApology"></div>
+
+      <button class="close" id="closeApology">Send Hugs 🤗</button>
+      <div class="small">I’ll never make you wait on purpose again — promise.</div>
+    </div>
+  </div>
+
+  <!-- surprise modal -->
+  <div class="overlay" id="overlaySurprise" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="surpriseTitle">
+      <div class="emoji-row" aria-hidden="true">
+        <div class="emoji">🌸</div>
+        <div class="emoji">🍰</div>
+        <div class="emoji">🐻</div>
+      </div>
+
+      <h2 id="surpriseTitle" style="color:#56122b;margin-bottom:8px;">Yay! You made me smile 😊</h2>
+      <p id="surpriseMsg" style="color:#6b2e4a;font-weight:700;">You deserve a little treat — a virtual hug and my promise to be better 💕</p>
+
+      <button class="close" id="closeSurprise">Aww, lovable! 🥰</button>
+    </div>
+  </div>
+
+  <!-- confetti -->
+  <div class="confetti" id="confettiRoot" aria-hidden="true"></div>
+
+  <script>
+    // ES6-friendly helpers & elements
+    const btnYes = document.getElementById('btnYes');
+    const btnNo  = document.getElementById('btnNo');
+
+    const overlayApology = document.getElementById('overlayApology');
+    const typedApology = document.getElementById('typedApology');
+    const closeApology = document.getElementById('closeApology');
+
+    const overlaySurprise = document.getElementById('overlaySurprise');
+    const surpriseMsg = document.getElementById('surpriseMsg');
+    const closeSurprise = document.getElementById('closeSurprise');
+
+    const confettiRoot = document.getElementById('confettiRoot');
+
+    // typed writer using Promises for nicer flow
+    const typeText = (elem, text, speed = 36) => {
+      return new Promise(resolve => {
+        elem.textContent = "";
+        const cursor = document.createElement('span');
+        cursor.className = 'cursor';
+        elem.appendChild(cursor);
+        let i = 0;
+        const step = () => {
+          if (i < text.length) {
+            cursor.insertAdjacentText('beforebegin', text[i]);
+            i++;
+            setTimeout(step, speed + Math.random()*28);
+          } else {
+            setTimeout(() => { cursor.remove(); resolve(); }, 700);
+          }
+        };
+        step();
+      });
+    };
+
+    // show apology modal with multiple lines typed sequentially
+    btnYes.addEventListener('click', async () => {
+      overlayApology.classList.add('show');
+      overlayApology.setAttribute('aria-hidden', 'false');
+
+      const lines = [
+        "Sachi, mujhe tumhara wait karwana bilkul pasand nahi.",
+        "Main so gaya — aur mujhe bohot afsos hai 😔",
+        "Maaf kar do na? Promise: next time pehle message bhej ke aunga 💛"
+      ];
+
+      for (let line of lines) {
+        await typeText(typedApology, line);
+        // short pause before next line
+        await new Promise(r => setTimeout(r, Math.max(900, line.length*30)));
+      }
+    });
+
+    closeApology.addEventListener('click', () => {
+      overlayApology.classList.remove('show');
+      overlayApology.setAttribute('aria-hidden', 'true');
+      typedApology.textContent = "";
+      // a small gentle pulse on Yes button
+      btnYes.animate([{ transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 260 });
+    });
+
+    // surprise modal + confetti on No
+    btnNo.addEventListener('click', () => {
+      overlaySurprise.classList.add('show');
+      overlaySurprise.setAttribute('aria-hidden', 'false');
+      launchConfetti(30);
+    });
+
+    closeSurprise.addEventListener('click', () => {
+      overlaySurprise.classList.remove('show');
+      overlaySurprise.setAttribute('aria-hidden', 'true');
+      setTimeout(() => confettiRoot.innerHTML = '', 1200);
+    });
+
+    // close overlays by clicking outside
+    document.querySelectorAll('.overlay').forEach(ov => {
+      ov.addEventListener('click', e => {
+        if (e.target === ov) {
+          ov.classList.remove('show');
+          ov.setAttribute('aria-hidden', 'true');
+        }
+      });
+    });
+
+    // keyboard esc to close
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.overlay.show').forEach(ov => { ov.classList.remove('show'); ov.setAttribute('aria-hidden', 'true'); });
+      }
+    });
+
+    // confetti util
+    const randomBetween = (a,b) => a + Math.random()*(b-a);
+    const colorPalette = () => ['#ff7ab8','#ffd1ea','#ffb4d9','#ffd6e8','#ff9fcf','#ffc0e0'];
+
+    const launchConfetti = (count = 20) => {
+      const colors = colorPalette();
+      for (let i=0;i<count;i++){
+        const p = document.createElement('div');
+        p.className = 'piece';
+        p.style.position = 'absolute';
+        p.style.left = `${randomBetween(6,92)}vw`;
+        p.style.top = `${-10 - Math.random()*20}vh`;
+        p.style.width = `${6 + Math.random()*9}px`;
+        p.style.height = `${10 + Math.random()*10}px`;
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.borderRadius = Math.random() > 0.5 ? '3px' : '1px';
+        p.style.transform = `rotate(${randomBetween(0,360)}deg)`;
+        p.style.opacity = '0.95';
+        p.style.animation = `fall ${1.8 + Math.random()*1.2}s linear ${Math.random()*0.18}s forwards`;
+        confettiRoot.appendChild(p);
+      }
+      setTimeout(() => {
+        confettiRoot.querySelectorAll('.piece').forEach(c => { c.style.transition = 'opacity .7s ease'; c.style.opacity = 0; });
+      }, 1800);
+      setTimeout(() => confettiRoot.innerHTML = '', 2600);
+    };
+
+    // small CSS keyframes injection for confetti fall (since pieces are created dynamically)
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      @keyframes fall { to { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
+    `;
+    document.head.appendChild(styleEl);
+
+    // accessibility: Enter triggers
+    btnYes.addEventListener('keydown', e => { if (e.key === 'Enter') btnYes.click(); });
+    btnNo.addEventListener('keydown', e => { if (e.key === 'Enter') btnNo.click(); });
+
+    // small initial pop
+    window.addEventListener('load', () => {
+      setTimeout(()=> document.querySelector('.card').animate([{ transform: 'scale(.98)' },{ transform: 'scale(1)' }],{ duration:400, easing:'ease-out' }), 180);
+    });
+  </script>
+</body>
+</html>
